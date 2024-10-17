@@ -1,79 +1,73 @@
 import streamlit as st
-import yt_dlp
+from moviepy.video.io.VideoFileClip import VideoFileClip
 import os
-from moviepy.editor import VideoFileClip
-
-# Set up the app title and description
-st.title("TikTok Video Downloader & Cropper")
-st.markdown("This tool allows you to download TikTok videos and crop them according to the start and end time you specify.")
+import subprocess
 
 # Function to download TikTok video
-def download_video(url):
+def download_tiktok_video(url):
     download_path = './downloads'
     if not os.path.exists(download_path):
         os.makedirs(download_path)
-
-    ydl_opts = {
-        'outtmpl': download_path + '/%(title)s.%(ext)s',
-        'format': 'bestvideo+bestaudio/best',
-    }
-
+    
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)
-            title = info_dict.get('title', None)
-            file_path = ydl.prepare_filename(info_dict)
-            ydl.download([url])
-            return f"Downloaded successfully: {title}", file_path
-    except Exception as e:
-        return f"Error: {e}", None
-
-# Function to crop video
-def crop_video(file_path, start_time, end_time):
-    try:
-        clip = VideoFileClip(file_path)
-        cropped_clip = clip.subclip(start_time, end_time)
-        cropped_file = file_path.replace(".mp4", "_cropped.mp4")
-        cropped_clip.write_videofile(cropped_file, codec="libx264")
-        return cropped_file
+        command = f'tiktok-scraper video {url} -d -p {download_path}'
+        subprocess.run(command, shell=True, check=True)
+        video_files = [f for f in os.listdir(download_path) if f.endswith(".mp4")]
+        if video_files:
+            video_file_path = os.path.join(download_path, video_files[0])
+            return video_file_path
+        else:
+            return None
     except Exception as e:
         return f"Error: {e}"
 
-# Main function to handle both download and crop
-def download_and_crop(url, start_time, end_time):
-    status, video_file = download_video(url)
-    if video_file:
-        cropped_file = crop_video(video_file, start_time, end_time)
-        if os.path.exists(cropped_file):
-            return f"Download and cropping successful!", cropped_file
-    return status, None
+# Function to crop the video
+def crop_video(video_path, start_time, end_time, output_path):
+    try:
+        video = VideoFileClip(video_path)
+        cropped_video = video.subclip(start_time, end_time)
+        cropped_video.write_videofile(output_path, codec="libx264")
+        return output_path
+    except Exception as e:
+        return f"Error: {e}"
 
-# Input fields in the Streamlit interface
-url = st.text_input("Enter TikTok video URL:", "")
-start_time = st.number_input("Start Time (seconds)", min_value=0, value=0)
-end_time = st.number_input("End Time (seconds)", min_value=1, value=10)
+# Streamlit Interface
+st.title("TikTok Video Downloader with Cropping Feature")
 
-# Button to download and crop the video
-if st.button("Download and Crop Video"):
-    if url:
-        with st.spinner('Downloading and cropping...'):
-            status, cropped_video = download_and_crop(url, start_time, end_time)
-            if cropped_video:
-                st.success(status)
-                st.video(cropped_video)
-                with open(cropped_video, "rb") as file:
-                    st.download_button(
-                        label="Download Cropped Video",
-                        data=file,
-                        file_name=os.path.basename(cropped_video),
-                        mime="video/mp4"
-                    )
+# User input for TikTok URL
+tiktok_url = st.text_input("Enter the TikTok video URL")
+
+# Inputs for cropping times
+start_time = st.number_input("Start time for cropping (in seconds)", min_value=0, value=0)
+end_time = st.number_input("End time for cropping (in seconds)", min_value=1, value=10)
+
+# Download and crop the video
+if st.button("Download and Crop"):
+    if tiktok_url:
+        video_file = download_tiktok_video(tiktok_url)
+        
+        if video_file:
+            st.success(f"Video downloaded successfully: {video_file}")
+            
+            # Create cropped video path
+            cropped_video_path = './downloads/cropped_video.mp4'
+            
+            # Crop the video
+            result = crop_video(video_file, start_time, end_time, cropped_video_path)
+            
+            if os.path.exists(cropped_video_path):
+                st.success(f"Cropped video saved: {cropped_video_path}")
+                st.video(cropped_video_path)
             else:
-                st.error(status)
+                st.error(f"Failed to crop the video: {result}")
+        else:
+            st.error(f"Failed to download video: {video_file}")
     else:
-        st.warning("Please enter a TikTok video URL.")
+        st.error("Please enter a valid TikTok URL")
 
-# Footer
-st.markdown("---")
-st.markdown("**Developed by [Your Name]**")
-st.markdown("For any queries or issues, feel free to contact me.")
+# Clear button
+if st.button("Clear"):
+    if os.path.exists('./downloads'):
+        for file in os.listdir('./downloads'):
+            os.remove(os.path.join('./downloads', file))
+    st.success("Downloads folder cleared.")
