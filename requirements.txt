@@ -1,3 +1,4 @@
 streamlit
 moviepy
 tiktok-scraper
+yt-dlp
