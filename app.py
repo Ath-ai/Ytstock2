@@ -4,25 +4,21 @@ import subprocess
 import tempfile
 from moviepy.editor import VideoFileClip
 
-# Check and install yt-dlp if not available
-yt_dlp_path = "/home/appuser/.local/bin/yt-dlp"
-
-if not os.path.exists(yt_dlp_path):
-    st.info("Installing yt-dlp, please wait...")
-    subprocess.run("pip install yt-dlp", shell=True, check=True)
-
-# Function to download TikTok video
+# Function to download TikTok video using yt-dlp
 def download_tiktok_video(url):
     temp_dir = tempfile.mkdtemp()
     output_path = os.path.join(temp_dir, '%(title)s.%(ext)s')
 
-    command = f'{yt_dlp_path} {url} -o "{output_path}"'  # Use default "best" format for TikTok
+    # Command to download TikTok video
+    command = f'yt-dlp -f "best" {url} -o "{output_path}"'  # Using "best" to get the best quality available
 
     try:
-        subprocess.run(command, shell=True, check=True)
+        # Run the command
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        st.success("Video downloaded successfully!")
         return temp_dir
     except subprocess.CalledProcessError as e:
-        st.error(f"Failed to download video: {e}")
+        st.error(f"Failed to download video: {e.stderr.decode().strip()}")
         return None
 
 # Function to crop video
