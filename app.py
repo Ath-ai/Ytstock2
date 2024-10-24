@@ -11,16 +11,12 @@ if not os.path.exists(yt_dlp_path):
     st.info("Installing yt-dlp, please wait...")
     subprocess.run("pip install yt-dlp", shell=True, check=True)
 
-# Function to download video (YouTube or TikTok)
-def download_video(url, quality="best"):
+# Function to download TikTok video
+def download_tiktok_video(url):
     temp_dir = tempfile.mkdtemp()
     output_path = os.path.join(temp_dir, '%(title)s.%(ext)s')
-    
-    # If the URL is from TikTok, do not try to select bestvideo and bestaudio separately
-    if "tiktok.com" in url:
-        command = f'{yt_dlp_path} {url} -o "{output_path}"'  # Use default "best" format for TikTok
-    else:
-        command = f'{yt_dlp_path} -f "bestvideo[height<={quality}]+bestaudio/best" {url} -o "{output_path}"'  # Use quality selection for YouTube
+
+    command = f'{yt_dlp_path} {url} -o "{output_path}"'  # Use default "best" format for TikTok
 
     try:
         subprocess.run(command, shell=True, check=True)
@@ -60,7 +56,7 @@ def format_time(seconds):
 
 # Main app function
 def main():
-    st.title("Video Downloader and Cropper (YouTube & TikTok)")
+    st.title("TikTok Video Downloader and Cropper")
 
     # Initialize session state variables
     if 'downloaded' not in st.session_state:
@@ -69,7 +65,7 @@ def main():
         st.session_state.cropped_video_path = None
         st.session_state.video_path = None
 
-    url = st.text_input("Enter YouTube or TikTok video URL:")
+    url = st.text_input("Enter TikTok video URL:")
     
     # Download button
     if st.button("Download"):
@@ -79,7 +75,7 @@ def main():
                 os.remove(st.session_state.cropped_video_path)
 
             # Download the video
-            temp_dir = download_video(url)
+            temp_dir = download_tiktok_video(url)
             if temp_dir:
                 video_files = [f for f in os.listdir(temp_dir) if f.endswith(('.mp4', '.mkv', '.webm'))]
                 if video_files:
@@ -92,7 +88,7 @@ def main():
             else:
                 st.error("No video found to display.")
         else:
-            st.error("Please enter a valid video URL.")
+            st.error("Please enter a valid TikTok URL.")
 
     # Show crop options only if a video is downloaded
     if st.session_state.downloaded:
