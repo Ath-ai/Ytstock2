@@ -1,4 +1,4 @@
 streamlit
-moviepy
-tiktok-scraper
 yt-dlp
+moviepy
+ffmpeg-python
