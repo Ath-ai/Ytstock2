@@ -3,21 +3,24 @@ import streamlit as st
 import subprocess
 import tempfile
 from moviepy.editor import VideoFileClip
-import warnings
 
-# Suppress SyntaxWarnings
-warnings.filterwarnings("ignore", category=SyntaxWarning)
+# Check and install yt-dlp if not available
+yt_dlp_path = "/home/appuser/.local/bin/yt-dlp"
+
+if not os.path.exists(yt_dlp_path):
+    st.info("Installing yt-dlp, please wait...")
+    subprocess.run("pip install yt-dlp", shell=True, check=True)
 
 # Function to download video (YouTube or TikTok)
 def download_video(url, quality="best"):
     temp_dir = tempfile.mkdtemp()
     output_path = os.path.join(temp_dir, '%(title)s.%(ext)s')
-
+    
     # If the URL is from TikTok, do not try to select bestvideo and bestaudio separately
     if "tiktok.com" in url:
-        command = f'yt-dlp {url} -o "{output_path}"'  # Use default "best" format for TikTok
+        command = f'{yt_dlp_path} {url} -o "{output_path}"'  # Use default "best" format for TikTok
     else:
-        command = f'yt-dlp -f "bestvideo[height<={quality}]+bestaudio/best" {url} -o "{output_path}"'  # Use quality selection for YouTube
+        command = f'{yt_dlp_path} -f "bestvideo[height<={quality}]+bestaudio/best" {url} -o "{output_path}"'  # Use quality selection for YouTube
 
     try:
         subprocess.run(command, shell=True, check=True)
@@ -68,10 +71,6 @@ def main():
 
     url = st.text_input("Enter YouTube or TikTok video URL:")
     
-    # Quality selection
-    quality = st.selectbox("Select Video Quality", ["best", "720p", "480p", "360p"])
-    quality_map = {"best": "2160", "720p": "720", "480p": "480", "360p": "360"}
-
     # Download button
     if st.button("Download"):
         if url:
@@ -79,8 +78,8 @@ def main():
             if st.session_state.cropped_video_path and os.path.exists(st.session_state.cropped_video_path):
                 os.remove(st.session_state.cropped_video_path)
 
-            # Download the video (TikTok or YouTube)
-            temp_dir = download_video(url, quality_map[quality])
+            # Download the video
+            temp_dir = download_video(url)
             if temp_dir:
                 video_files = [f for f in os.listdir(temp_dir) if f.endswith(('.mp4', '.mkv', '.webm'))]
                 if video_files:
@@ -93,7 +92,7 @@ def main():
             else:
                 st.error("No video found to display.")
         else:
-            st.error("Please enter a valid YouTube or TikTok URL.")
+            st.error("Please enter a valid video URL.")
 
     # Show crop options only if a video is downloaded
     if st.session_state.downloaded:
