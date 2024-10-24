@@ -3,13 +3,22 @@ import streamlit as st
 import subprocess
 import tempfile
 from moviepy.editor import VideoFileClip
+import warnings
+
+# Suppress SyntaxWarnings
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Function to download video (YouTube or TikTok)
 def download_video(url, quality="best"):
     temp_dir = tempfile.mkdtemp()
     output_path = os.path.join(temp_dir, '%(title)s.%(ext)s')
-    command = f'yt-dlp -f "bestvideo[height<={quality}]+bestaudio/best" {url} -o "{output_path}"'
-    
+
+    # If the URL is from TikTok, do not try to select bestvideo and bestaudio separately
+    if "tiktok.com" in url:
+        command = f'yt-dlp {url} -o "{output_path}"'  # Use default "best" format for TikTok
+    else:
+        command = f'yt-dlp -f "bestvideo[height<={quality}]+bestaudio/best" {url} -o "{output_path}"'  # Use quality selection for YouTube
+
     try:
         subprocess.run(command, shell=True, check=True)
         return temp_dir
