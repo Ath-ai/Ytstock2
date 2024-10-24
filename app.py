@@ -10,15 +10,19 @@ def download_tiktok_video(url):
     output_path = os.path.join(temp_dir, '%(title)s.%(ext)s')
 
     # Command to download TikTok video
-    command = f'yt-dlp -f "best" {url} -o "{output_path}"'  # Using "best" to get the best quality available
+    command = f'yt-dlp -f "best" {url} -o "{output_path}"'
 
     try:
         # Run the command
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        st.success("Video downloaded successfully!")
-        return temp_dir
-    except subprocess.CalledProcessError as e:
-        st.error(f"Failed to download video: {e.stderr.decode().strip()}")
+        if result.returncode == 0:
+            st.success("Video downloaded successfully!")
+            return temp_dir
+        else:
+            st.error(f"Failed to download video: {result.stderr.decode().strip()}")
+            return None
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
         return None
 
 # Function to crop video
